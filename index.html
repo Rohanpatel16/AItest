@@ -65,6 +65,12 @@
         textarea {
             min-height: 100px;
         }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
         button {
             padding: 0.75rem 1.5rem;
             border-radius: 6px;
@@ -127,6 +133,11 @@
             <label for="model-select">Choose a Model:</label>
             <select id="model-select"></select>
 
+            <label class="checkbox-container">
+                <input type="checkbox" id="stream-checkbox" checked>
+                Stream response in real-time
+            </label>
+
             <button type="submit" id="submit-button">Generate Response</button>
         </form>
 
@@ -137,23 +148,21 @@
     </div>
 
     <script>
-        // Model list from the new documentation
         const availableModels = [
+            'claude-3-5-sonnet',
             'gpt-4o-mini',
             'gpt-4o',
-            'claude-3-5-sonnet',
             'gemini-1.5-flash',
             'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
             'deepseek-chat',
             'o1-mini',
             'grok-beta',
-            'google/gemma-2-27b-it',
-            // Add other models from the docs if you like
         ];
 
         const form = document.getElementById('ai-form');
         const promptInput = document.getElementById('prompt-input');
         const modelSelect = document.getElementById('model-select');
+        const streamCheckbox = document.getElementById('stream-checkbox');
         const submitButton = document.getElementById('submit-button');
         const outputDiv = document.getElementById('output');
 
@@ -164,7 +173,6 @@
                 option.textContent = modelName;
                 modelSelect.appendChild(option);
             });
-            // Set a default model that is known to be good
             modelSelect.value = 'claude-3-5-sonnet';
         }
         
@@ -177,20 +185,36 @@
 
             const prompt = promptInput.value;
             const model = modelSelect.value;
+            const useStream = streamCheckbox.checked;
 
             try {
                 // ==========================================================
-                // KEY CHANGE: USING testMode: true FOR NO-LOGIN ACCESS
+                // CORRECTED API CALL
+                // testMode and other parameters go inside the options object.
                 // ==========================================================
-                // The syntax is: puter.ai.chat(prompt, testMode, options)
-                const response = await puter.ai.chat(prompt, true, { model: model });
+                const options = {
+                    model: model,
+                    stream: useStream,
+                    testMode: true // Use test mode for no-login access
+                };
                 
-                if (response?.message?.content) {
-                    outputDiv.textContent = response.message.content;
+                if (useStream) {
+                    // Handle a streaming response for better UX
+                    const responseStream = await puter.ai.chat(prompt, options);
+                    for await (const part of responseStream) {
+                        if (part?.text) {
+                            outputDiv.innerHTML += part.text.replaceAll('\n', '<br>');
+                        }
+                    }
                 } else {
-                    // Handle cases where the response might not have the expected structure
-                    outputDiv.innerHTML = `<p class="error">Received an unexpected response format. Please check the console.</p>`;
-                    console.log("Unexpected response:", response);
+                    // Handle a single, non-streaming response
+                    const response = await puter.ai.chat(prompt, options);
+                    if (response?.message?.content) {
+                        outputDiv.textContent = response.message.content;
+                    } else {
+                        outputDiv.innerHTML = `<p class="error">Received an unexpected response. Check the console for details.</p>`;
+                        console.log("Unexpected response format:", response);
+                    }
                 }
 
             } catch (error) {
@@ -202,7 +226,6 @@
             }
         });
 
-        // Initialize the page
         populateModelDropdown();
 
     </script>
