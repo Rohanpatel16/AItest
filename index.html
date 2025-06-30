@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Gemini AI Demo with Puter.js</title>
+    <title>No-Login AI Demo (testMode)</title>
     
     <!-- 1. Include the Puter.js script -->
     <script src="https://js.puter.com/v2/"></script>
@@ -35,7 +35,13 @@
         h1 {
             text-align: center;
             margin-top: 0;
-            color: #0d6efd;
+            color: #1a73e8;
+        }
+        .info-box {
+            background-color: #e8f0fe;
+            border-left: 4px solid #1a73e8;
+            padding: 1rem;
+            border-radius: 4px;
         }
         form {
             display: flex;
@@ -59,25 +65,19 @@
         textarea {
             min-height: 100px;
         }
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-        }
         button {
             padding: 0.75rem 1.5rem;
             border-radius: 6px;
             border: none;
-            background-color: #0d6efd;
+            background-color: #1a73e8;
             color: white;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
+            transition: background-color 0.2s ease;
         }
         button:hover {
-            background-color: #0b5ed7;
+            background-color: #1765cf;
         }
         button:disabled {
             background-color: #6c757d;
@@ -99,14 +99,11 @@
             border-radius: 6px;
             padding: 1rem;
             min-height: 150px;
-            white-space: pre-wrap; /* Preserves whitespace and newlines */
+            white-space: pre-wrap;
             word-wrap: break-word;
             line-height: 1.6;
         }
-        .error {
-            color: #dc3545;
-            font-weight: bold;
-        }
+        .error { color: #dc3545; font-weight: bold; }
 
         @keyframes ellipsis {
             0% { content: '.'; }
@@ -118,20 +115,17 @@
 <body>
 
     <div class="container">
-        <h1>Gemini AI Demo with Puter.js</h1>
-        <p>This page uses the free, key-less Puter.js library to access Google's Gemini models directly in your browser. All processing happens on your end via the "User Pays" model.</p>
+        <h1>AI Demo (No Sign-In Required)</h1>
+        <div class="info-box">
+            <p>This demo uses Puter.js in <strong>testMode</strong>. No login or API keys are needed.</p>
+        </div>
 
         <form id="ai-form">
             <label for="prompt-input">Your Prompt:</label>
-            <textarea id="prompt-input" placeholder="e.g., Explain the process of photosynthesis" required></textarea>
+            <textarea id="prompt-input" placeholder="e.g., What is the capital of France?" required>What are the main differences between a llama and an alpaca?</textarea>
 
-            <label for="model-select">Choose a Gemini Model:</label>
+            <label for="model-select">Choose a Model:</label>
             <select id="model-select"></select>
-
-            <label class="checkbox-container">
-                <input type="checkbox" id="stream-checkbox" checked>
-                Stream response in real-time
-            </label>
 
             <button type="submit" id="submit-button">Generate Response</button>
         </form>
@@ -143,37 +137,35 @@
     </div>
 
     <script>
-        const geminiModels = [
-            'google/gemini-2.5-pro-exp-03-25:free',
-            'google/gemini-2.0-flash-lite-001',
-            'google/gemini-flash-1.5',
-            'google/gemini-pro',
-            'google/gemini-2.5-flash-preview',
-            'google/gemini-2.5-flash-preview:thinking',
-            'google/gemini-2.0-flash-001',
-            'google/gemini-2.0-pro-exp-02-05:free',
-            'google/gemini-2.0-flash-thinking-exp:free',
-            'google/gemini-2.0-flash-thinking-exp-1219:free',
-            'google/gemini-2.0-flash-exp:free',
-            'google/gemini-flash-1.5-8b',
-            'google/gemini-flash-1.5-8b-exp',
-            'google/gemini-pro-1.5'
+        // Model list from the new documentation
+        const availableModels = [
+            'gpt-4o-mini',
+            'gpt-4o',
+            'claude-3-5-sonnet',
+            'gemini-1.5-flash',
+            'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+            'deepseek-chat',
+            'o1-mini',
+            'grok-beta',
+            'google/gemma-2-27b-it',
+            // Add other models from the docs if you like
         ];
 
         const form = document.getElementById('ai-form');
         const promptInput = document.getElementById('prompt-input');
         const modelSelect = document.getElementById('model-select');
-        const streamCheckbox = document.getElementById('stream-checkbox');
         const submitButton = document.getElementById('submit-button');
         const outputDiv = document.getElementById('output');
 
         function populateModelDropdown() {
-            geminiModels.forEach(modelName => {
+            availableModels.forEach(modelName => {
                 const option = document.createElement('option');
                 option.value = modelName;
                 option.textContent = modelName;
                 modelSelect.appendChild(option);
             });
+            // Set a default model that is known to be good
+            modelSelect.value = 'claude-3-5-sonnet';
         }
         
         form.addEventListener('submit', async (event) => {
@@ -181,48 +173,29 @@
 
             submitButton.disabled = true;
             submitButton.textContent = 'Thinking';
-            outputDiv.innerHTML = '<p>Checking authentication...</p>';
+            outputDiv.innerHTML = '';
+
+            const prompt = promptInput.value;
+            const model = modelSelect.value;
 
             try {
                 // ==========================================================
-                // FINAL CORRECTED AUTHENTICATION CHECK
+                // KEY CHANGE: USING testMode: true FOR NO-LOGIN ACCESS
                 // ==========================================================
-                let user = await puter.auth.getUser();
-                if (!user) {
-                    outputDiv.innerHTML = '<p>Please log in via the Puter pop-up window...</p>';
-                    user = await puter.auth.login(); 
-                }
-                // ==========================================================
-
-                outputDiv.innerHTML = ''; 
+                // The syntax is: puter.ai.chat(prompt, testMode, options)
+                const response = await puter.ai.chat(prompt, true, { model: model });
                 
-                const prompt = promptInput.value;
-                const model = modelSelect.value;
-                const useStream = streamCheckbox.checked;
-
-                const options = {
-                    model: model,
-                    stream: useStream
-                };
-                
-                if (useStream) {
-                    const responseStream = await puter.ai.chat(prompt, options);
-                    for await (const part of responseStream) {
-                        if (part?.text) {
-                            outputDiv.innerHTML += part.text;
-                        }
-                    }
-                } else {
-                    const response = await puter.ai.chat(prompt, options);
+                if (response?.message?.content) {
                     outputDiv.textContent = response.message.content;
+                } else {
+                    // Handle cases where the response might not have the expected structure
+                    outputDiv.innerHTML = `<p class="error">Received an unexpected response format. Please check the console.</p>`;
+                    console.log("Unexpected response:", response);
                 }
 
             } catch (error) {
                 console.error("Puter.js AI Error:", error);
-                outputDiv.innerHTML = `<p class="error">An error occurred: ${error.message}. Please check the console.</p>`;
-                if (error.message.includes("closed") || error.message.includes("cancelled")) {
-                     outputDiv.innerHTML += `<p class="error">It looks like the login window was closed. Please try again.</p>`
-                }
+                outputDiv.innerHTML = `<p class="error">An error occurred: ${error.message}.</p>`;
             } finally {
                 submitButton.disabled = false;
                 submitButton.textContent = 'Generate Response';
