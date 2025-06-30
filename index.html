@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Gemini AI Demo with Puter.js</title>
     
-    <!-- 1. Include the Puter.js script as required by the tutorial -->
+    <!-- 1. Include the Puter.js script as required -->
     <script src="https://js.puter.com/v2/"></script>
 
     <style>
@@ -169,7 +169,6 @@
         const submitButton = document.getElementById('submit-button');
         const outputDiv = document.getElementById('output');
 
-        // Populate the model dropdown list when the page loads
         function populateModelDropdown() {
             geminiModels.forEach(modelName => {
                 const option = document.createElement('option');
@@ -181,48 +180,58 @@
         
         // Listen for the form submission
         form.addEventListener('submit', async (event) => {
-            event.preventDefault(); // Prevent the default form submission (page reload)
-
-            // Get user inputs from the form
-            const prompt = promptInput.value;
-            const model = modelSelect.value;
-            const useStream = streamCheckbox.checked;
+            event.preventDefault(); // Prevent the default form submission
 
             // Provide user feedback
             submitButton.disabled = true;
             submitButton.textContent = 'Thinking';
-            outputDiv.innerHTML = ''; // Clear previous output
+            outputDiv.innerHTML = '<p>Checking authentication...</p>'; // Clear previous output
 
             try {
-                // Prepare the options for the puter.ai.chat call
+                // ==========================================================
+                // NEW: EXPLICIT AUTHENTICATION CHECK
+                // ==========================================================
+                const isLoggedIn = await puter.auth.isLoggedIn();
+                if (!isLoggedIn) {
+                    outputDiv.innerHTML = '<p>Please log in via the Puter pop-up window...</p>';
+                    await puter.auth.login(); // This will force the login pop-up to appear
+                }
+                // ==========================================================
+
+                // Now we are sure the user is logged in, proceed.
+                outputDiv.innerHTML = ''; // Clear the login message
+                
+                // Get user inputs from the form
+                const prompt = promptInput.value;
+                const model = modelSelect.value;
+                const useStream = streamCheckbox.checked;
+
                 const options = {
                     model: model,
                     stream: useStream
                 };
                 
                 if (useStream) {
-                    // Handle streaming responses (like Example 3)
                     const responseStream = await puter.ai.chat(prompt, options);
-                    
                     for await (const part of responseStream) {
                         if (part?.text) {
-                            // Append each part of the stream to the output div
                             outputDiv.innerHTML += part.text;
                         }
                     }
-
                 } else {
-                    // Handle a single, non-streaming response (like Example 1)
                     const response = await puter.ai.chat(prompt, options);
                     outputDiv.textContent = response.message.content;
                 }
 
             } catch (error) {
-                // Display any errors that occur
                 console.error("Puter.js AI Error:", error);
-                outputDiv.innerHTML = `<p class="error">An error occurred. Please check the browser console for more details.</p>`;
+                outputDiv.innerHTML = `<p class="error">An error occurred: ${error.message}. Please check the console.</p>`;
+                // A common error is the user closing the login window.
+                if (error.message.includes("closed")) {
+                     outputDiv.innerHTML += `<p class="error">It looks like the login window was closed. Please try again.</p>`
+                }
             } finally {
-                // Re-enable the button and reset its text when done
+                // Re-enable the button when done
                 submitButton.disabled = false;
                 submitButton.textContent = 'Generate Response';
             }
