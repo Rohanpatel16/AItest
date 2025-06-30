@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Gemini AI Demo with Puter.js</title>
     
-    <!-- 1. Include the Puter.js script as required -->
+    <!-- 1. Include the Puter.js script -->
     <script src="https://js.puter.com/v2/"></script>
 
     <style>
@@ -123,7 +123,7 @@
 
         <form id="ai-form">
             <label for="prompt-input">Your Prompt:</label>
-            <textarea id="prompt-input" placeholder="e.g., Explain the concept of black holes in simple terms" required></textarea>
+            <textarea id="prompt-input" placeholder="e.g., Explain the process of photosynthesis" required></textarea>
 
             <label for="model-select">Choose a Gemini Model:</label>
             <select id="model-select"></select>
@@ -143,7 +143,6 @@
     </div>
 
     <script>
-        // All the models listed in the tutorial
         const geminiModels = [
             'google/gemini-2.5-pro-exp-03-25:free',
             'google/gemini-2.0-flash-lite-001',
@@ -186,12 +185,12 @@
 
             try {
                 // ==========================================================
-                // CORRECTED AUTHENTICATION CHECK
+                // FINAL CORRECTED AUTHENTICATION CHECK
                 // ==========================================================
-                let user = await puter.user();
+                let user = await puter.auth.getUser();
                 if (!user) {
                     outputDiv.innerHTML = '<p>Please log in via the Puter pop-up window...</p>';
-                    user = await puter.login(); // This is the correct login function
+                    user = await puter.auth.login(); 
                 }
                 // ==========================================================
 
