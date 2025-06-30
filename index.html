@@ -161,7 +161,6 @@
             'google/gemini-pro-1.5'
         ];
 
-        // Get references to our HTML elements
         const form = document.getElementById('ai-form');
         const promptInput = document.getElementById('prompt-input');
         const modelSelect = document.getElementById('model-select');
@@ -178,30 +177,26 @@
             });
         }
         
-        // Listen for the form submission
         form.addEventListener('submit', async (event) => {
-            event.preventDefault(); // Prevent the default form submission
+            event.preventDefault(); 
 
-            // Provide user feedback
             submitButton.disabled = true;
             submitButton.textContent = 'Thinking';
-            outputDiv.innerHTML = '<p>Checking authentication...</p>'; // Clear previous output
+            outputDiv.innerHTML = '<p>Checking authentication...</p>';
 
             try {
                 // ==========================================================
-                // NEW: EXPLICIT AUTHENTICATION CHECK
+                // CORRECTED AUTHENTICATION CHECK
                 // ==========================================================
-                const isLoggedIn = await puter.auth.isLoggedIn();
-                if (!isLoggedIn) {
+                let user = await puter.user();
+                if (!user) {
                     outputDiv.innerHTML = '<p>Please log in via the Puter pop-up window...</p>';
-                    await puter.auth.login(); // This will force the login pop-up to appear
+                    user = await puter.login(); // This is the correct login function
                 }
                 // ==========================================================
 
-                // Now we are sure the user is logged in, proceed.
-                outputDiv.innerHTML = ''; // Clear the login message
+                outputDiv.innerHTML = ''; 
                 
-                // Get user inputs from the form
                 const prompt = promptInput.value;
                 const model = modelSelect.value;
                 const useStream = streamCheckbox.checked;
@@ -226,12 +221,10 @@
             } catch (error) {
                 console.error("Puter.js AI Error:", error);
                 outputDiv.innerHTML = `<p class="error">An error occurred: ${error.message}. Please check the console.</p>`;
-                // A common error is the user closing the login window.
-                if (error.message.includes("closed")) {
+                if (error.message.includes("closed") || error.message.includes("cancelled")) {
                      outputDiv.innerHTML += `<p class="error">It looks like the login window was closed. Please try again.</p>`
                 }
             } finally {
-                // Re-enable the button when done
                 submitButton.disabled = false;
                 submitButton.textContent = 'Generate Response';
             }
