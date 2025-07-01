@@ -5,21 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stellar Comment AI [Test Mode]</title>
     <script src="https://js.puter.com/v2/"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --space-bg: #0a0f18;
             --primary-accent: #a9d5ff;
             --text-primary: #e0e6f0;
             --text-secondary: #8a9ebf;
-            --container-bg: rgba(17, 25, 40, 0.5);
+            --container-bg: rgba(17, 25, 40, 0.8);
             --border-color: rgba(61, 90, 128, 0.3);
             --border-hover: rgba(169, 213, 255, 0.5);
             --glow-color: rgba(169, 213, 255, 0.15);
             --test-mode-bg: #ffc107;
             --test-mode-text: #000;
+            --success-color: #4ade80;
+            --error-color: #f87171;
         }
 
         @keyframes stars {
@@ -27,26 +31,38 @@
             100% { transform: translateY(-2000px); }
         }
 
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--space-bg);
             color: var(--text-primary);
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
             min-height: 100vh;
             margin: 0;
-            padding: 40px 20px;
-            box-sizing: border-box;
+            padding: 0;
             position: relative;
+            overflow-x: hidden;
         }
-        
+
         .starfield {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: transparent;
             z-index: -1;
+            overflow: hidden;
         }
+
         .starfield .stars {
             height: 200%;
             background-image: 
@@ -60,353 +76,469 @@
             animation: stars 200s linear infinite;
         }
 
-        .main-container {
+        .floating-astronaut {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 100px;
+            height: 100px;
+            z-index: 10;
+            animation: float 6s ease-in-out infinite;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .floating-astronaut:hover {
+            transform: scale(1.1);
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: 120px;
+            right: 0;
             background: var(--container-bg);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 32px;
-            width: 100%;
-            max-width: 700px;
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(12px);
-            z-index: 1;
-            position: relative;
+            border-radius: 8px;
+            padding: 12px;
+            width: 200px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
         }
-        
-        .test-mode-indicator {
-            position: absolute;
-            top: 0;
+
+        .floating-astronaut:hover .tooltip {
+            opacity: 1;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: var(--test-mode-bg);
-            color: var(--test-mode-text);
-            padding: 4px 12px;
-            font-size: 12px;
-            font-weight: 700;
-            border-radius: 0 0 6px 6px;
-            font-family: 'Space Mono', monospace;
-        }
-
-        h1 {
-            font-weight: 700;
+            background: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 20px;
             color: var(--text-primary);
-            text-align: center;
-            font-size: 26px;
-            margin-top: 30px;
-            margin-bottom: 30px;
-            letter-spacing: 1px;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
-        .input-group { margin-bottom: 24px; }
-        
-        label {
+        .toast.show {
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--error-color);
+        }
+
+        .copy-btn {
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn.copied {
+            background-color: var(--success-color) !important;
+            border-color: var(--success-color) !important;
+            color: #000 !important;
+        }
+
+        .tone-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tone-option {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .tone-option input[type="radio"] {
+            display: none;
+        }
+
+        .tone-option label {
             display: block;
+            padding: 10px 12px;
+            background: rgba(10, 15, 24, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
             font-size: 14px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
+        }
+
+        .tone-option input[type="radio"]:checked + label {
+            background: var(--primary-accent);
+            color: #04080f;
+            border-color: var(--primary-accent);
             font-weight: 600;
         }
 
-        input, select {
-            width: 100%;
-            background: rgba(10, 15, 24, 0.5);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 12px 15px;
-            font-family: 'Space Mono', monospace;
-            font-size: 16px;
-            border-radius: 8px;
-            transition: all 0.3s ease-in-out;
-            box-sizing: border-box;
-        }
-        
-        input:-webkit-autofill {
-            -webkit-box-shadow: 0 0 0 30px var(--space-bg) inset !important;
-            -webkit-text-fill-color: var(--text-primary) !important;
-        }
-
-        input:focus, select:focus {
-            outline: none;
+        .tone-option label:hover {
             border-color: var(--border-hover);
-            box-shadow: 0 0 15px var(--glow-color);
-        }
-        
-        button#generate-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            width: 100%;
-            background: var(--primary-accent);
-            color: #04080f;
-            border: none;
-            padding: 14px;
-            font-family: 'Inter', sans-serif;
-            font-size: 16px;
-            font-weight: 700;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease-in-out;
-        }
-
-        button#generate-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px var(--glow-color);
-            filter: brightness(1.1);
-        }
-
-        button:disabled {
-            background: #3d5a80;
-            color: #8a9ebf;
-            cursor: not-allowed;
-        }
-        
-        .loader-container {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            padding: 20px;
-            color: var(--text-secondary);
-        }
-        .orbit-loader {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 3px solid var(--border-color);
-            border-top-color: var(--primary-accent);
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        #comments-output {
-            margin-top: 30px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 30px;
         }
 
         .comment-card {
-            background: rgba(30, 42, 62, 0.4);
-            padding: 20px;
-            margin-bottom: 16px;
-            border-radius: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .comment-card h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            color: var(--primary-accent);
-            font-weight: 600;
+        .comment-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px var(--glow-color);
         }
 
-        .comment-card p {
-            margin: 0 0 15px 0;
-            line-height: 1.7;
-            font-family: 'Space Mono', monospace;
-            white-space: pre-wrap;
-        }
-
-        .comment-card button {
-            background: transparent;
-            border: 1px solid var(--text-secondary);
-            color: var(--text-secondary);
-            font-size: 12px;
-            font-family: 'Inter', sans-serif;
-            padding: 6px 12px;
-            border-radius: 6px;
-            transition: all 0.2s ease-in-out;
-            cursor: pointer;
-        }
-        .comment-card button:hover:not(:disabled) {
-            background: var(--primary-accent);
-            border-color: var(--primary-accent);
-            color: var(--space-bg);
+        @media (max-width: 640px) {
+            .tone-option {
+                min-width: calc(50% - 8px);
+            }
+            
+            .floating-astronaut {
+                width: 70px;
+                height: 70px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="starfield">
-      <div class="stars"></div>
+        <div class="stars"></div>
     </div>
 
-    <div class="main-container">
-        <div class="test-mode-indicator">TEST MODE ACTIVE</div>
-
-        <h1>Stellar Comment AI</h1>
-        
-        <div class="input-group">
-            <label for="linkedin-url">LinkedIn Post URL</label>
-            <input type="url" id="linkedin-url" placeholder="https://www.linkedin.com/posts/...">
+    <div class="floating-astronaut">
+        <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f9d1-1f680.svg" alt="Astronaut">
+        <div class="tooltip">
+            Need help? Just paste a LinkedIn post URL and select your preferred tone!
         </div>
-        
-        <div class="input-group">
-            <label for="comment-tone">Select Tone</label>
-            <select id="comment-tone">
-                <option value="Professional">Professional</option>
-                <option value="Supportive">Supportive</option>
-                <option value="Casual">Casual</option>
-                <option value="Inquisitive">Inquisitive</option>
-                <option value="Enthusiastic">Enthusiastic</option>
-            </select>
-        </div>
-        
-        <button id="generate-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
-            <span>Generate Comments</span>
-        </button>
-        
-        <div class="loader-container" id="loader">
-            <div class="orbit-loader"></div>
-            <span id="loader-text">Awaiting signal...</span>
-        </div>
-        
-        <div id="comments-output"></div>
     </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const urlInput = document.getElementById('linkedin-url');
-    const toneSelect = document.getElementById('comment-tone');
-    const generateBtn = document.getElementById('generate-btn');
-    const loader = document.getElementById('loader');
-    const loaderText = document.getElementById('loader-text');
-    const commentsOutput = document.getElementById('comments-output');
+    <div class="toast hidden" id="toast"></div>
 
-    let lastFetchedData = null;
+    <div class="min-h-screen flex items-center justify-center p-4 sm:p-6">
+        <div class="w-full max-w-2xl bg-[rgba(17,25,40,0.8)] border border-[rgba(61,90,128,0.3)] rounded-xl shadow-xl backdrop-blur-lg overflow-hidden">
+            <div class="absolute top-0 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-black px-4 py-1 text-xs font-bold rounded-b-lg font-mono">
+                TEST MODE ACTIVE
+            </div>
 
-    const COMMENT_STYLES = {
-        insightful: { title: "Insightful Question", prompt: "an insightful comment that adds value by asking a relevant follow-up question. Do not start with the author's name." },
-        supportive: { title: "Supportive Agreement", prompt: "a supportive comment that agrees with the main point. Start by addressing the author, for example: 'Great point, [Author's Name]!'" },
-        concise_reaction: { title: "Concise Reaction", prompt: "a brief, enthusiastic reaction. Address the author, for example: 'Love this, [Author's Name]!'" }
-    };
+            <div class="p-6 sm:p-8">
+                <div class="flex items-center justify-center mb-6">
+                    <div class="bg-[rgba(169,213,255,0.2)] p-3 rounded-full mr-3">
+                        <i class="fas fa-comment-dots text-[#a9d5ff] text-xl"></i>
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-[#a9d5ff] to-[#7aa7d8]">
+                        Stellar Comment AI
+                    </h1>
+                </div>
 
-    async function generateSingleComment(caption, authorName, tone, styleKey) {
-        const style = COMMENT_STYLES[styleKey];
-        const messages = [{
-            role: 'user',
-            content: `Based on a LinkedIn post by "${authorName}", generate a single, unique comment. Instructions: Tone must be ${tone}. Style must be: ${style.prompt.replace("[Author's Name]", authorName)}. Keep it 1-3 sentences. Provide only the raw text of the comment. Post content: --- ${caption} ---`
-        }];
+                <div class="mb-6">
+                    <label for="linkedin-url" class="block text-sm font-medium text-[#8a9ebf] mb-2">
+                        LinkedIn Post URL
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="url" 
+                            id="linkedin-url" 
+                            placeholder="https://www.linkedin.com/posts/..." 
+                            class="w-full bg-[rgba(10,15,24,0.5)] border border-[rgba(61,90,128,0.3)] text-[#e0e6f0] px-4 py-3 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-[rgba(169,213,255,0.5)] focus:border-transparent transition-all duration-200"
+                        >
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <i class="fas fa-link text-[#8a9ebf]"></i>
+                        </div>
+                    </div>
+                </div>
 
-        try {
-            // **THE DEFINITIVE FIX**
-            // Pass a single options object as the second argument.
-            const response = await puter.ai.chat(messages, {
-                testMode: true,
-                model: 'gemini-1.5-flash' 
-            });
-            
-            if (typeof response === 'string') {
-                return response.trim();
-            } else if (typeof response === 'object' && response.message && typeof response.message.content === 'string') {
-                return response.message.content.trim();
-            } else {
-                console.error("Unexpected AI response format:", response);
-                return "Error: Received an unexpected data format from the AI.";
-            }
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-[#8a9ebf] mb-2">
+                        Select Tone
+                    </label>
+                    <div class="tone-selector">
+                        <div class="tone-option">
+                            <input type="radio" id="tone-professional" name="comment-tone" value="Professional" checked>
+                            <label for="tone-professional">
+                                <i class="fas fa-suitcase mr-1"></i> Professional
+                            </label>
+                        </div>
+                        <div class="tone-option">
+                            <input type="radio" id="tone-supportive" name="comment-tone" value="Supportive">
+                            <label for="tone-supportive">
+                                <i class="fas fa-hands-helping mr-1"></i> Supportive
+                            </label>
+                        </div>
+                        <div class="tone-option">
+                            <input type="radio" id="tone-casual" name="comment-tone" value="Casual">
+                            <label for="tone-casual">
+                                <i class="fas fa-smile mr-1"></i> Casual
+                            </label>
+                        </div>
+                        <div class="tone-option">
+                            <input type="radio" id="tone-inquisitive" name="comment-tone" value="Inquisitive">
+                            <label for="tone-inquisitive">
+                                <i class="fas fa-question mr-1"></i> Inquisitive
+                            </label>
+                        </div>
+                        <div class="tone-option">
+                            <input type="radio" id="tone-enthusiastic" name="comment-tone" value="Enthusiastic">
+                            <label for="tone-enthusiastic">
+                                <i class="fas fa-fire mr-1"></i> Enthusiastic
+                            </label>
+                        </div>
+                    </div>
+                </div>
 
-        } catch (error) {
-            console.error('AI generation failed:', error);
-            if (error && error.message && error.message.includes('Permission denied')) {
-                return 'Error: AI usage limit reached. Add credits at puter.com/billing to use live mode.';
-            }
-            return 'Error: AI signal lost. Please check the console for details.';
-        }
-    }
+                <button id="generate-btn" class="w-full bg-[#a9d5ff] text-[#04080f] font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-[#91c4f0] hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#a9d5ff] focus:ring-opacity-50">
+                    <i class="fas fa-meteor animate-pulse"></i>
+                    <span>Generate Comments</span>
+                </button>
 
-    // ... The rest of the JavaScript is unchanged and correct ...
-    async function handleFetchAndGenerate() {
-        const url = urlInput.value.trim();
-        if (!url.startsWith('https://www.linkedin.com/posts/')) {
-            alert('Error: Invalid URL. Please provide a valid LinkedIn post URL.');
-            return;
-        }
+                <div class="loader-container hidden mt-6" id="loader">
+                    <div class="flex flex-col items-center justify-center gap-4">
+                        <div class="w-10 h-10 border-4 border-[rgba(61,90,128,0.3)] border-t-[#a9d5ff] rounded-full animate-spin"></div>
+                        <div class="text-[#8a9ebf] text-sm font-medium flex items-center gap-2">
+                            <span id="loader-text">Analyzing post content...</span>
+                            <span class="animate-pulse">...</span>
+                        </div>
+                    </div>
+                </div>
 
-        generateBtn.disabled = true;
-        generateBtn.querySelector('span').textContent = 'Processing...';
-        loader.style.display = 'flex';
-        loaderText.textContent = 'Fetching post data...';
-        commentsOutput.innerHTML = '';
-        lastFetchedData = null;
+                <div id="comments-output" class="mt-8 pt-8 border-t border-[rgba(61,90,128,0.3)]"></div>
+            </div>
+        </div>
+    </div>
 
-        try {
-            const response = await puter.net.fetch(url);
-            const htmlText = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlText, 'text/html');
-            const jsonLdElement = doc.querySelector('script[type="application/ld+json"]');
-            if (!jsonLdElement) throw new Error("Could not find structured data. The post may be private.");
-            
-            const jsonData = JSON.parse(jsonLdElement.textContent);
-            const caption = jsonData.articleBody;
-            const authorName = jsonData.author?.name;
-            if (!authorName || !caption) throw new Error("Could not parse author or content from structured data.");
-            
-            lastFetchedData = { caption, authorName };
-            loaderText.textContent = 'Generating comments...';
-            generateBtn.querySelector('span').textContent = 'Generating...';
-            await generateAllComments(caption, authorName);
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlInput = document.getElementById('linkedin-url');
+            const generateBtn = document.getElementById('generate-btn');
+            const loader = document.getElementById('loader');
+            const loaderText = document.getElementById('loader-text');
+            const commentsOutput = document.getElementById('comments-output');
+            const toast = document.getElementById('toast');
+            const toneRadios = document.querySelectorAll('input[name="comment-tone"]');
 
-        } catch (error) {
-            console.error('Fetching or parsing failed:', error);
-            const friendlyMessage = error.message.includes('Permission denied') 
-                ? 'Your Puter account has reached its AI usage limit. Please go to puter.com/billing to add credits.'
-                : `Failed to process the URL. Error: ${error.message}`;
+            let lastFetchedData = null;
+
+            const COMMENT_STYLES = {
+                insightful: { 
+                    title: "Insightful Question", 
+                    icon: "lightbulb",
+                    prompt: "an insightful comment that adds value by asking a relevant follow-up question. Do not start with the author's name." 
+                },
+                supportive: { 
+                    title: "Supportive Agreement", 
+                    icon: "thumbs-up",
+                    prompt: "a supportive comment that agrees with the main point. Start by addressing the author, for example: 'Great point, [Author's Name]!'" 
+                },
+                concise_reaction: { 
+                    title: "Concise Reaction", 
+                    icon: "bolt",
+                    prompt: "a brief, enthusiastic reaction. Address the author, for example: 'Love this, [Author's Name]!'" 
+                }
+            };
+
+            function showToast(message, type = 'info', duration = 3000) {
+                toast.textContent = message;
+                toast.className = 'toast';
+                toast.classList.add(type);
                 
-            loaderText.textContent = friendlyMessage;
-            alert(friendlyMessage);
-        } finally {
-            generateBtn.disabled = false;
-            generateBtn.querySelector('span').textContent = 'Generate Comments';
-            if (!lastFetchedData) loader.style.display = 'none';
-        }
-    }
-    
-    async function generateAllComments(caption, authorName) {
-        commentsOutput.innerHTML = '';
-        const generationPromises = Object.keys(COMMENT_STYLES).map(styleKey => 
-            generateSingleComment(caption, authorName, toneSelect.value, styleKey)
-        );
-        const results = await Promise.all(generationPromises);
-        loader.style.display = 'none';
-        results.forEach((commentText, index) => {
-            const styleKey = Object.keys(COMMENT_STYLES)[index];
-            renderComment(commentText, styleKey);
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 10);
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, duration);
+            }
+
+            async function generateSingleComment(caption, authorName, tone, styleKey) {
+                const style = COMMENT_STYLES[styleKey];
+                const messages = [{
+                    role: 'user',
+                    content: `Based on a LinkedIn post by "${authorName}", generate a single, unique comment. Instructions: Tone must be ${tone}. Style must be: ${style.prompt.replace("[Author's Name]", authorName)}. Keep it 1-3 sentences. Provide only the raw text of the comment. Post content: --- ${caption} ---`
+                }];
+
+                try {
+                    const response = await puter.ai.chat(messages, {
+                        testMode: true,
+                        model: 'gemini-1.5-flash'
+                    });
+
+                    if (typeof response === 'string') {
+                        return response.trim();
+                    } else if (typeof response === 'object' && response.message && typeof response.message.content === 'string') {
+                        return response.message.content.trim();
+                    } else {
+                        console.error("Unexpected AI response format:", response);
+                        return "Error: Received an unexpected data format from the AI.";
+                    }
+                } catch (error) {
+                    console.error('AI generation failed:', error);
+                    if (error && error.message && error.message.includes('Permission denied')) {
+                        return 'Error: AI usage limit reached. Add credits at puter.com/billing to use live mode.';
+                    }
+                    return 'Error: AI signal lost. Please check the console for details.';
+                }
+            }
+
+            async function handleFetchAndGenerate() {
+                const url = urlInput.value.trim();
+                if (!url.startsWith('https://www.linkedin.com/posts/')) {
+                    showToast('Please provide a valid LinkedIn post URL', 'error');
+                    urlInput.focus();
+                    return;
+                }
+
+                const selectedTone = document.querySelector('input[name="comment-tone"]:checked').value;
+                
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<i class="fas fa-spinner animate-spin"></i><span>Processing...</span>';
+                loader.classList.remove('hidden');
+                loaderText.textContent = 'Fetching post data...';
+                commentsOutput.innerHTML = '';
+                lastFetchedData = null;
+
+                try {
+                    const response = await puter.net.fetch(url);
+                    const htmlText = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlText, 'text/html');
+                    const jsonLdElement = doc.querySelector('script[type="application/ld+json"]');
+                    
+                    if (!jsonLdElement) throw new Error("Could not find structured data. The post may be private.");
+
+                    const jsonData = JSON.parse(jsonLdElement.textContent);
+                    const caption = jsonData.articleBody;
+                    const authorName = jsonData.author?.name;
+                    
+                    if (!authorName || !caption) throw new Error("Could not parse author or content from structured data.");
+
+                    lastFetchedData = { caption, authorName };
+                    loaderText.textContent = 'Generating comments...';
+                    generateBtn.innerHTML = '<i class="fas fa-cog animate-spin"></i><span>Generating...</span>';
+                    
+                    showToast(`Analyzing post by ${authorName}`, 'success');
+                    await generateAllComments(caption, authorName, selectedTone);
+
+                } catch (error) {
+                    console.error('Fetching or parsing failed:', error);
+                    const friendlyMessage = error.message.includes('Permission denied') 
+                        ? 'Your Puter account has reached its AI usage limit. Please go to puter.com/billing to add credits.'
+                        : `Failed to process the URL. Error: ${error.message}`;
+
+                    loaderText.textContent = friendlyMessage;
+                    showToast(friendlyMessage, 'error');
+                } finally {
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="fas fa-meteor animate-pulse"></i><span>Generate Comments</span>';
+                    if (!lastFetchedData) loader.classList.add('hidden');
+                }
+            }
+
+            async function generateAllComments(caption, authorName, tone) {
+                commentsOutput.innerHTML = '';
+                const generationPromises = Object.keys(COMMENT_STYLES).map(styleKey => 
+                    generateSingleComment(caption, authorName, tone, styleKey)
+                );
+                
+                const results = await Promise.all(generationPromises);
+                loader.classList.add('hidden');
+                
+                results.forEach((commentText, index) => {
+                    const styleKey = Object.keys(COMMENT_STYLES)[index];
+                    renderComment(commentText, styleKey);
+                });
+                
+                showToast('Comments generated successfully!', 'success');
+            }
+
+            function renderComment(text, styleKey) {
+                const style = COMMENT_STYLES[styleKey];
+                const card = document.createElement('div');
+                card.className = 'comment-card bg-[rgba(30,42,62,0.4)] p-5 rounded-lg mb-4';
+                
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-${style.icon} text-[#a9d5ff]"></i>
+                            <h3 class="text-sm font-semibold text-[#a9d5ff]">${style.title}</h3>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="copy-btn text-xs bg-transparent border border-[#8a9ebf] text-[#8a9ebf] px-3 py-1 rounded hover:bg-[#a9d5ff] hover:border-[#a9d5ff] hover:text-[#04080f] transition-colors">
+                                <i class="fas fa-copy mr-1"></i> Copy
+                            </button>
+                            <button class="regenerate-btn text-xs bg-transparent border border-[#8a9ebf] text-[#8a9ebf] px-3 py-1 rounded hover:bg-[#a9d5ff] hover:border-[#a9d5ff] hover:text-[#04080f] transition-colors" data-style-key="${styleKey}">
+                                <i class="fas fa-sync-alt mr-1"></i> Regenerate
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-[#e0e6f0] font-mono whitespace-pre-wrap mb-4">${text}</p>
+                `;
+                
+                commentsOutput.appendChild(card);
+            }
+
+            async function handleRegenerateComment(e) {
+                if (!e.target.classList.contains('regenerate-btn') || !lastFetchedData) return;
+                
+                const regenerateBtn = e.target;
+                const styleKey = regenerateBtn.dataset.styleKey;
+                const card = regenerateBtn.closest('.comment-card');
+                const paragraph = card.querySelector('p');
+                const selectedTone = document.querySelector('input[name="comment-tone"]:checked').value;
+
+                regenerateBtn.disabled = true;
+                regenerateBtn.innerHTML = '<i class="fas fa-spinner animate-spin"></i> Regenerating';
+                
+                const { caption, authorName } = lastFetchedData;
+                const newCommentText = await generateSingleComment(caption, authorName, selectedTone, styleKey);
+
+                paragraph.textContent = newCommentText;
+                regenerateBtn.disabled = false;
+                regenerateBtn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Regenerate';
+                
+                showToast('Comment regenerated!', 'success');
+            }
+
+            function handleCopyComment(e) {
+                if (!e.target.classList.contains('copy-btn') && !e.target.closest('.copy-btn')) return;
+                
+                const copyBtn = e.target.classList.contains('copy-btn') ? e.target : e.target.closest('.copy-btn');
+                const card = copyBtn.closest('.comment-card');
+                const text = card.querySelector('p').textContent;
+                
+                navigator.clipboard.writeText(text).then(() => {
+                    copyBtn.classList.add('copied');
+                    copyBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Copied!';
+                    
+                    setTimeout(() => {
+                        copyBtn.classList.remove('copied');
+                        copyBtn.innerHTML = '<i class="fas fa-copy mr-1"></i> Copy';
+                    }, 2000);
+                    
+                    showToast('Comment copied to clipboard!', 'success');
+                });
+            }
+
+            generateBtn.addEventListener('click', handleFetchAndGenerate);
+            commentsOutput.addEventListener('click', handleRegenerateComment);
+            commentsOutput.addEventListener('click', handleCopyComment);
+
+            // Add floating astronaut click event
+            document.querySelector('.floating-astronaut').addEventListener('click', () => {
+                showToast('Paste a LinkedIn post URL above to get started!', 'info', 4000);
+            });
         });
-    }
-
-    function renderComment(text, styleKey) {
-        const style = COMMENT_STYLES[styleKey];
-        const card = document.createElement('div');
-        card.className = 'comment-card';
-        card.innerHTML = `<h3>${style.title}</h3><p>${text}</p><button class="regenerate-btn" data-style-key="${styleKey}">Regenerate</button>`;
-        commentsOutput.appendChild(card);
-    }
-    
-    async function handleRegenerateComment(e) {
-        if (!e.target.matches('.regenerate-btn') || !lastFetchedData) return;
-        const regenerateBtn = e.target;
-        const styleKey = regenerateBtn.dataset.styleKey;
-        const card = regenerateBtn.closest('.comment-card');
-        const paragraph = card.querySelector('p');
-        
-        regenerateBtn.disabled = true;
-        regenerateBtn.textContent = '...';
-        paragraph.textContent = '...';
-
-        const { caption, authorName } = lastFetchedData;
-        const newCommentText = await generateSingleComment(caption, authorName, toneSelect.value, styleKey);
-
-        paragraph.textContent = newCommentText;
-        regenerateBtn.disabled = false;
-        regenerateBtn.textContent = 'Regenerate';
-    }
-
-    generateBtn.addEventListener('click', handleFetchAndGenerate);
-    commentsOutput.addEventListener('click', handleRegenerateComment);
-});
-</script>
-
+    </script>
 </body>
 </html>
